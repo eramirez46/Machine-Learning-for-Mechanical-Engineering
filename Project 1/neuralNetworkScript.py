@@ -9,7 +9,6 @@ import numpy as np
 import math
 
 # customize the path file locations to your computer!
-
 trainPath = "C:/Python Playground/Machine-Learning-for-Mechanical-Engineering/Project 1/Microstructure-Stiffness Train Dataset.csv"
 testPath = "C:/Python Playground/Machine-Learning-for-Mechanical-Engineering/Project 1/Microstructure-Stiffness Test Dataset.csv"
 
@@ -76,12 +75,29 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = CNNModel().to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
 
-epochs = 2
+def computeRMSE(dataLoader, model, device, criterion):
+    model.eval()
+    runningLoss = 0.0
+    totalSamples = 0
+    with torch.no_grad():
+        for features, labels in dataLoader:
+            features, labels = features.to(device), labels.to(device)
+            predictions = model(features)
+            loss = criterion(predictions.squeeze(), labels)
+            runningLoss += loss.item() * features.size(0)
+            totalSamples += features.size(0)
+    mse = runningLoss / totalSamples
+    rmse = math.sqrt(mse)
+    return rmse
+
+# Training with 1 Test Per Epoch:
+epochs = 100
+
 for epoch in range(epochs):
     model.train()
-    runningLoss = 0.0
-
+    # Training step
     for features, labels in trainLoader:
         features, labels = features.to(device), labels.to(device)
 
@@ -91,8 +107,8 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
 
-        runningLoss += loss.item() * features.size(0)
+    # Compute RMSE on both train and test sets using the helper
+    trainRMSE = computeRMSE(trainLoader, model, device, criterion)
+    testRMSE = computeRMSE(testLoader, model, device, criterion)
 
-    epochLoss = runningLoss / len(trainDataset)
-    RMSE = math.sqrt(epochLoss)
-    print(f"Epoch {epoch+1}/{epochs} - RMSE: {RMSE:.4f}")
+    print(f"Epoch {epoch+1}/{epochs} - Train RMSE: {trainRMSE:.4f}, Test RMSE: {testRMSE:.4f}")
