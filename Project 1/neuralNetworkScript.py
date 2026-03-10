@@ -7,6 +7,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import time
 
 # customize the path file locations to your computer!
 trainPath = "C:/Python Playground/Machine-Learning-for-Mechanical-Engineering/Project 1/Microstructure-Stiffness Train Dataset.csv"
@@ -45,11 +46,6 @@ testDataset = MicrostructureDataset(testPath)
 
 trainLoader = DataLoader(trainDataset, batch_size=32, shuffle=True)
 testLoader = DataLoader(testDataset, batch_size=32)
-
-# for features, labels in trainLoader:
-#     print(features.shape)
-#     print(labels.shape)
-#     break
 
 class CNNModel(nn.Module):
     def __init__(self):
@@ -93,7 +89,10 @@ def computeRMSE(dataLoader, model, device, criterion):
     return rmse
 
 # Training with 1 Test Per Epoch:
-epochs = 100
+startTime = time.time()
+epochs = 200
+trainRMSEs = []
+testRMSEs = []
 
 for epoch in range(epochs):
     model.train()
@@ -107,8 +106,26 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
 
-    # Compute RMSE on both train and test sets using the helper
     trainRMSE = computeRMSE(trainLoader, model, device, criterion)
     testRMSE = computeRMSE(testLoader, model, device, criterion)
+    trainRMSEs.append(trainRMSE)
+    testRMSEs.append(testRMSE)
 
     print(f"Epoch {epoch+1}/{epochs} - Train RMSE: {trainRMSE:.4f}, Test RMSE: {testRMSE:.4f}")
+endTime = time.time()
+totalTime = endTime - startTime
+print(f"\nTotal Training Runtime: {totalTime:.2f} seconds")
+
+bestTestRMSE = min(testRMSEs)
+bestEpoch = testRMSEs.index(bestTestRMSE) + 1
+print(f"Best Test RMSE: {bestTestRMSE:.4f} at epoch {bestEpoch}")
+
+plt.figure(figsize=(8,5))
+plt.plot(range(1, epochs+1), trainRMSEs, label="Train RMSE", marker='o')
+plt.plot(range(1, epochs+1), testRMSEs, label="Test RMSE", marker='s')
+plt.xlabel("Epoch")
+plt.ylabel("RMSE")
+plt.title("Train vs Test RMSE per Epoch")
+plt.legend()
+plt.grid(True)
+plt.show()
