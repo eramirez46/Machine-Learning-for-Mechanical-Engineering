@@ -9,6 +9,9 @@ import numpy as np
 import math
 import time
 
+# Author's Note (Edward Ramirez)
+# this script runs a CNN model for 200 epochs. It outputs the best RMSE and also plots the actual vs predicted stiffness.
+
 # customize the path file locations to your computer!
 trainPath = "C:/Python Playground/Machine-Learning-for-Mechanical-Engineering/Project 1/Microstructure-Stiffness Train Dataset.csv"
 testPath = "C:/Python Playground/Machine-Learning-for-Mechanical-Engineering/Project 1/Microstructure-Stiffness Test Dataset.csv"
@@ -120,12 +123,36 @@ bestTestRMSE = min(testRMSEs)
 bestEpoch = testRMSEs.index(bestTestRMSE) + 1
 print(f"Best Test RMSE: {bestTestRMSE:.4f} at epoch {bestEpoch}")
 
+model.eval()
+allPreds = []
+allActuals = []
+
+with torch.no_grad():
+    for features, labels in testLoader:
+        features, labels = features.to(device), labels.to(device)
+        predictions = model(features)
+        allPreds.extend(predictions.squeeze().cpu().numpy())
+        allActuals.extend(labels.cpu().numpy())
+
+
 plt.figure(figsize=(8,5))
 plt.plot(range(1, epochs+1), trainRMSEs, label="Train RMSE", marker='o')
 plt.plot(range(1, epochs+1), testRMSEs, label="Test RMSE", marker='s')
 plt.xlabel("Epoch")
 plt.ylabel("RMSE")
 plt.title("Train vs Test RMSE per Epoch")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(6,6))
+plt.scatter(allActuals, allPreds, color='blue', alpha=0.6)
+plt.plot([min(allActuals), max(allActuals)],
+         [min(allActuals), max(allActuals)],
+         color='red', linestyle='--', label='Perfect Prediction')
+plt.xlabel("Actual Stiffness")
+plt.ylabel("Predicted Stiffness")
+plt.title("Predicted vs Actual Stiffness")
 plt.legend()
 plt.grid(True)
 plt.show()
